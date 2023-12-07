@@ -260,6 +260,14 @@ class PPOAgent:
             loss = self.loss(res)
             self.optimizer.zero_grad()
             loss.backward()
+            params = []
+            for p in self.policy.parameters():
+                params.append(p)
+            for p in self.value.parameters():
+                params.append(p)
+            for p in self.log_std.parameters():
+                params.append(p)
+            torch.nn.utils.clip_grad_norm_(params, 10)
             self.optimizer.step()
             avg_loss += loss.item()
         avg_loss /= self.K
