@@ -13,7 +13,7 @@ action_dim = env.action_space.shape[0]
 dv = "cpu"
 agent = models.PPOAgent(state_dim=state_dim, hidden_dim=64, action_dim=action_dim,
                         dist="gaussian", num_layers=2, device=dv, lr_p=0.0003,
-                        lr_v=0.001, K=80, batch_size=-1, eps=0.2, c_clip=1.0, c_v=0.5,
+                        lr_v=0.001, K=50, batch_size=-1, eps=0.2, c_clip=1.0, c_v=0.5,
                         c_ent=0.01, bn=False)
 it = 0
 update_iter = 4000
@@ -22,12 +22,12 @@ show_freq = 10
 gamma = 0.99
 lmbda = 0.97
 
-for epi in range(5000):
+for epi in range(750):
     epi_rew = []
     while agent.memory.size < update_iter:
         states, actions, logprobs, rewards = [], [], [], []
         obs, _ = env.reset()
-        obs = torch.tensor(obs.reshape(-1) / 255.0, dtype=torch.float)
+        obs = torch.tensor(obs.reshape(-1), dtype=torch.float)
         for t in range(max_timesteps):
             # forward policy
             with torch.no_grad():
@@ -36,7 +36,7 @@ for epi in range(5000):
                 logprob, _ = agent.logprob(obs, action)
             states.append(obs.cpu())
             obs, rew, done, _, _ = env.step(action.tolist())
-            obs = torch.tensor(obs.reshape(-1) / 255.0, dtype=torch.float)
+            obs = torch.tensor(obs.reshape(-1), dtype=torch.float)
             actions.append(action.cpu())
             logprobs.append(logprob.cpu())
             rewards.append(rew)
@@ -76,19 +76,19 @@ for epi in range(5000):
     agent.policy.eval()
     agent.value.eval()
     agent.reset_memory()
-    print(f"Epi: {epi+1}, reward: {np.mean(epi_rew):.3f}, loss: {loss:.3f}")
+    print(f"Update: {epi+1}, Env Step: {update_iter*(epi+1)}, reward: {np.mean(epi_rew):.3f}, loss: {loss:.3f}")
 
     if (epi+1) % show_freq == 0:
         env_vis = gym.make(sys.argv[1], render_mode="human")
         obs, _ = env_vis.reset()
-        obs = torch.tensor(obs.reshape(-1) / 255.0, dtype=torch.float)
+        obs = torch.tensor(obs.reshape(-1), dtype=torch.float)
         for t in range(max_timesteps):
             # forward policy
             with torch.no_grad():
                 m = agent.dist(obs)
                 action = m.sample()
             obs, _, done, _, _ = env_vis.step(action.tolist())
-            obs = torch.tensor(obs.reshape(-1) / 255.0, dtype=torch.float)
+            obs = torch.tensor(obs.reshape(-1), dtype=torch.float)
             env.render()
             if done:
                 break
